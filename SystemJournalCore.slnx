@@ -17,6 +17,9 @@
     <File Path="LinuxOnly.cs" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/journald-native-protocol.md" />
+  </Folder>
   <Project Path="SystemJournalCore.Tests/SystemJournalCore.Tests.csproj" />
   <Project Path="SystemJournalCore/SystemJournalCore.csproj" />
 </Solution>
