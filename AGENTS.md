@@ -24,6 +24,16 @@ dotnet test
 
 `dotnet test` currently runs against an empty test project, so zero tests is expected until real tests are added.
 
+## CI
+
+- GitHub Actions workflow: `.github/workflows/pipeline.yml`
+- `validate` runs `dotnet build` and `dotnet test --no-build` on:
+  - `ubuntu-24.04`
+  - `ubuntu-22.04`
+  - `ubuntu-24.04-arm`
+  - `ubuntu-22.04-arm`
+- `publish` exists but is intentionally disabled until package publishing is enabled.
+
 ## Current Conventions
 
 - All projects target **net10.0** with `LangVersion=preview`.
