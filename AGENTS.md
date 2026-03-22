@@ -47,6 +47,7 @@ dotnet test
 - Keep the public API in `SystemJournalCore/`.
 - If you introduce `journalctl` integration, native interop, or parsing code, isolate that logic behind small internal types instead of mixing it into the public surface.
 - Prefer a clear split between public API types, system integration code, parsing/translation code, and tests.
+- For journald transport and read/query design notes, see `docs/journald-native-protocol.md`.
 - Update `README.md` and this file when the architecture becomes concrete so the guidance stays accurate.
 - If you add native interop later, prefer `[LibraryImport]` over `[DllImport]`.
 
