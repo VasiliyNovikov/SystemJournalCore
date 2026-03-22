@@ -75,11 +75,13 @@ Write path:
 
 Read/query path:
 
-- either a small `libsystemd` interop layer over `sd_journal_*` or a `journalctl` adapter if native interop is deferred
+- a small `libsystemd` interop layer over `sd_journal_*`
 - translation from `FIELD=value` buffers into public entry/query types
 - cursor/follow handling for incremental readers
 
 The public API can stay higher level than either underlying implementation. The write path should preserve journald's field rules and avoid exposing trusted `_` fields as user-settable values. The read path should expose filters, seeking, cursors, and follow/tail behavior without leaking `sd_journal*` handles into the public surface.
+
+For testing and behavioral comparison, `journalctl` can still be useful as an external validation tool, but it should not be part of the runtime implementation path.
 
 A fully managed read implementation is a larger project than the native write transport: it means parsing journal files on disk rather than speaking another socket protocol.
 

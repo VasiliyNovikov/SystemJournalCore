@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-`SystemJournalCore` is intended to become a .NET wrapper around the Linux system journal (`journald` / `journalctl`).
+`SystemJournalCore` is intended to become a .NET wrapper around the Linux system journal (`journald`).
 
 Current repository state:
 
@@ -45,8 +45,9 @@ dotnet test
 ## Architecture Guidance
 
 - Keep the public API in `SystemJournalCore/`.
-- If you introduce `journalctl` integration, native interop, or parsing code, isolate that logic behind small internal types instead of mixing it into the public surface.
+- If you introduce native interop or parsing code, isolate that logic behind small internal types instead of mixing it into the public surface.
 - Prefer a clear split between public API types, system integration code, parsing/translation code, and tests.
+- `journalctl` may be used for testing, validation, or behavioral comparison, but it is not part of the runtime implementation path.
 - For journald transport and read/query design notes, see `docs/journald-native-protocol.md`.
 - Update `README.md` and this file when the architecture becomes concrete so the guidance stays accurate.
 - If you add native interop later, prefer `[LibraryImport]` over `[DllImport]`.
