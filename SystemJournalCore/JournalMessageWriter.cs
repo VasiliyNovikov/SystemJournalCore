@@ -1,12 +1,13 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SystemJournalCore;
 
-public ref struct JornalMessageWriter(Span<byte> buffer) : IDisposable
+public ref struct JournalMessageWriter(Span<byte> buffer) : IDisposable
 {
     private static readonly SearchValues<byte> FieldNameValidChars = SearchValues.Create("ABCDEFGHIJKLMNOPRSTUVWZYZ0123456789_"u8);
 
@@ -14,7 +15,7 @@ public ref struct JornalMessageWriter(Span<byte> buffer) : IDisposable
     private byte[]? _rentedBuffer;
     private int _position;
 
-    public ReadOnlySpan<byte> Written => _buffer[.._position];
+    public readonly ReadOnlySpan<byte> Bytes => _buffer[.._position];
 
     public void Append(scoped ReadOnlySpan<byte> field, scoped ReadOnlySpan<byte> value)
     {
@@ -46,6 +47,12 @@ public ref struct JornalMessageWriter(Span<byte> buffer) : IDisposable
         valueBytes = valueBytes[..Encoding.UTF8.GetBytes(value, valueBytes)];
 
         Append(fieldBytes, valueBytes);
+    }
+
+    public void AppendAll(IEnumerable<KeyValuePair<string, string>> fields)
+    {
+        foreach (var (field, value) in fields)
+            Append(field, value);
     }
 
     public readonly void Dispose()
