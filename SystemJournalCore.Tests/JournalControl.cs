@@ -39,7 +39,7 @@ internal static class JournalControl
         }
     }
 
-    public static List<Dictionary<string, string>> Read(string? identifier = null, DateTime? since = null, int? lines = null, IEnumerable<string>? matches = null)
+    public static IEnumerable<JournalEntry> Read(string? identifier = null, DateTime? since = null, int? lines = null, IEnumerable<string>? matches = null)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -47,7 +47,7 @@ internal static class JournalControl
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
-            ArgumentList = { "--output", "json", "--no-pager" }
+            ArgumentList = { "--output", "json", "--all", "--no-pager" }
         };
 
         if (identifier is not null)
@@ -81,22 +81,29 @@ internal static class JournalControl
             throw new InvalidOperationException($"journalctl exited with code {process.ExitCode}: {stderr}");
         }
 
-        var entries = new List<Dictionary<string, string>>();
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
             var jsonFields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(line);
             if (jsonFields is null)
                 continue;
 
-            var entry = new Dictionary<string, string>(jsonFields.Count);
+            var entry = new JournalEntry();
             foreach (var (key, value) in jsonFields)
             {
                 if (value.ValueKind == JsonValueKind.String)
-                    entry[key] = value.GetString()!;
+                    entry.Add(key, value.GetString()!);
+                else if (value.ValueKind == JsonValueKind.Array)
+                {
+                    var length = value.GetArrayLength();
+                    var bytes = new byte[length];
+                    var i = 0;
+                    foreach (var element in value.EnumerateArray())
+                        bytes[i++] = element.GetByte();
+                    entry.Add(key, bytes);
+                }
             }
-            entries.Add(entry);
+            yield return entry;
         }
-        return entries;
     }
 
     private static void WaitOrKill(Process process)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -20,7 +21,7 @@ public class JournalControlTests
             ["SYSLOG_IDENTIFIER"] = identifier
         });
 
-        var entries = JournalControl.Read(identifier: identifier, lines: 1);
+        var entries = JournalControl.Read(identifier: identifier, lines: 1).ToList();
         Assert.HasCount(1, entries);
 
         var entry = entries[0];

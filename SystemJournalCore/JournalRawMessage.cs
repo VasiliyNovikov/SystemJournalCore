@@ -55,15 +55,19 @@ public ref struct JournalRawMessage : IDisposable
     }
 
     [SkipLocalsInit]
+    public void Add(scoped ReadOnlySpan<byte> field, string value)
+    {
+        Span<byte> valueBytes = stackalloc byte[Encoding.UTF8.GetMaxByteCount(value.Length)];
+        valueBytes = valueBytes[..Encoding.UTF8.GetBytes(value, valueBytes)];
+        Add(field, valueBytes);
+    }
+
+    [SkipLocalsInit]
     public void Add(string field, string value)
     {
         Span<byte> fieldBytes = stackalloc byte[field.Length];
         Encoding.ASCII.GetBytes(field, fieldBytes);
-
-        Span<byte> valueBytes = stackalloc byte[Encoding.UTF8.GetMaxByteCount(value.Length)];
-        valueBytes = valueBytes[..Encoding.UTF8.GetBytes(value, valueBytes)];
-
-        Add(fieldBytes, valueBytes);
+        Add(fieldBytes, value);
     }
 
     public void AddAll(IEnumerable<KeyValuePair<string, string>> fields)
