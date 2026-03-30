@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 using LinuxCore;
 
@@ -19,26 +17,18 @@ public sealed class JournalWriter : IDisposable
 
     public void Dispose() => _socket.Dispose();
 
-    public void Write(JournalMessageWriter message)
+    public void Write(JournalRawMessage rawMessage)
     {
         try
         {
-            _socket.Send(message.Bytes);
+            _socket.Send(rawMessage.Bytes);
         }
         catch (LinuxException e) when (e.ErrorNumber == LinuxErrorNumber.MessageTooLong)
         {
             using var mem = new LinuxMemoryFile("journal", LinuxMemoryFileFlags.AllowSealing);
-            mem.Write(message.Bytes);
+            mem.Write(rawMessage.Bytes);
             mem.AddSeals(LinuxMemoryFileSeals.Shrink | LinuxMemoryFileSeals.Grow | LinuxMemoryFileSeals.Write | LinuxMemoryFileSeals.Seal);
             _socket.SendFileDescriptors([], [mem.Descriptor]);
         }
-    }
-
-    [SkipLocalsInit]
-    public void Write(Dictionary<string, string> message, int bufferSize = 1024)
-    {
-        using var writer = new JournalMessageWriter(stackalloc byte[bufferSize]);
-        writer.AppendAll(message);
-        Write(writer);
     }
 }
