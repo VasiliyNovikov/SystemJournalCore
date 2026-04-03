@@ -23,7 +23,7 @@ public sealed class JournalWriter : IDisposable
         {
             _socket.Send(rawMessage.Bytes);
         }
-        catch (LinuxException e) when (e.ErrorNumber == LinuxErrorNumber.MessageTooLong)
+        catch (LinuxException e) when (e.ErrorNumber is LinuxErrorNumber.TryAgain or LinuxErrorNumber.MessageTooLong or LinuxErrorNumber.NoBufferSpaceAvailable)
         {
             using var mem = new LinuxMemoryFile("journal", LinuxMemoryFileFlags.AllowSealing);
             mem.Write(rawMessage.Bytes);
