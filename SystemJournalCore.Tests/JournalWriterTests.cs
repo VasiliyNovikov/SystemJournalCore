@@ -24,15 +24,14 @@ public class JournalWriterTests
             : "single-line-value";
         byte[] binaryData = [0x00, 0xFF, 0x80, 0xFE, 0x01];
 
-        Span<byte> buffer = stackalloc byte[512];
-        using var rawMessage = JournalRawMessage.New(buffer);
-        rawMessage.Add("SYSLOG_IDENTIFIER"u8, identifier);
-        rawMessage.Add("MESSAGE"u8, message);
-        rawMessage.Add("TEST_DATA"u8, testData);
-        rawMessage.Add("TEST_BINARY"u8, binaryData);
+        using var writeMessage = new JournalWriteMessage(stackalloc byte[512]);
+        writeMessage.Add("SYSLOG_IDENTIFIER"u8, identifier);
+        writeMessage.Add("MESSAGE"u8, message);
+        writeMessage.Add("TEST_DATA"u8, testData);
+        writeMessage.Add("TEST_BINARY"u8, binaryData);
 
         using var writer = new JournalWriter();
-        writer.Write(rawMessage);
+        writer.Write(writeMessage);
 
         var entries = JournalControl.Read(identifier: identifier, lines: 1).ToList();
         Assert.HasCount(1, entries);

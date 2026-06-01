@@ -17,16 +17,16 @@ public sealed class JournalWriter : IDisposable
 
     public void Dispose() => _socket.Dispose();
 
-    public void Write(JournalRawMessage rawMessage)
+    public void Write(JournalWriteMessage message)
     {
         try
         {
-            _socket.Send(rawMessage.Bytes);
+            _socket.Send(message.Bytes);
         }
         catch (LinuxException e) when (e.ErrorNumber is LinuxErrorNumber.TryAgain or LinuxErrorNumber.MessageTooLong or LinuxErrorNumber.NoBufferSpaceAvailable)
         {
             using var mem = new LinuxMemoryFile("journal", LinuxMemoryFileFlags.AllowSealing);
-            mem.Write(rawMessage.Bytes);
+            mem.Write(message.Bytes);
             mem.AddSeals(LinuxMemoryFileSeals.Shrink | LinuxMemoryFileSeals.Grow | LinuxMemoryFileSeals.Write | LinuxMemoryFileSeals.Seal);
             _socket.SendFileDescriptors([], [mem.Descriptor]);
         }
