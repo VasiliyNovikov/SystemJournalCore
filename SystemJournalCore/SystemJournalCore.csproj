@@ -13,8 +13,12 @@
     <RepositoryType>Git</RepositoryType>
     <PackageTags>linux;journal;journald;logging</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LinuxCore" />
   </ItemGroup>
 </Project>
