@@ -42,6 +42,14 @@ internal static unsafe partial class LibSystemD
     [LibraryImport(LibraryName, EntryPoint = "sd_journal_process")]
     public static partial JournalResult<int> sd_journal_process(sd_journal* journal);
 
+    // int sd_journal_seek_head(sd_journal *j);
+    [LibraryImport(LibraryName, EntryPoint = "sd_journal_seek_head")]
+    public static partial JournalResult sd_journal_seek_head(sd_journal* journal);
+
+    // int sd_journal_seek_tail(sd_journal *j);
+    [LibraryImport(LibraryName, EntryPoint = "sd_journal_seek_tail")]
+    public static partial JournalResult sd_journal_seek_tail(sd_journal* journal);
+
     // int sd_journal_seek_realtime_usec(sd_journal *j, uint64_t usec);
     [LibraryImport(LibraryName, EntryPoint = "sd_journal_seek_realtime_usec")]
     public static partial JournalResult sd_journal_seek_realtime_usec(sd_journal* journal, ulong usec);
