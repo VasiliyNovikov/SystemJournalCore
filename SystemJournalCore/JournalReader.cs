@@ -82,4 +82,16 @@ public sealed unsafe class JournalReader : NativeObject
     }
 
     public void AddMatch(string field, string value) => AddMatch(FieldCache.Get(field), value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Read(out JournalEntryReader entry)
+    {
+        if (sd_journal_next(_journal).ThrowIfError() == 0)
+        {
+            entry = default;
+            return false;
+        }
+        entry = new JournalEntryReader(_journal);
+        return true;
+    }
 }

@@ -58,9 +58,13 @@ internal static unsafe partial class LibSystemD
     [LibraryImport(LibraryName, EntryPoint = "sd_journal_next")]
     public static partial JournalResult<int> sd_journal_next(sd_journal* journal);
 
+    // int sd_journal_get_data(sd_journal *j, const char *field, const void **data, size_t *length);
+    [LibraryImport(LibraryName, EntryPoint = "sd_journal_get_data")]
+    public static partial JournalResult sd_journal_get_data(sd_journal* journal, ReadOnlySpan<byte> field, out byte* data, out nuint length);
+
     //  int sd_journal_enumerate_data(sd_journal *j, const void **data, size_t *length);
     [LibraryImport(LibraryName, EntryPoint = "sd_journal_enumerate_data")]
-    public static partial JournalResult<int> sd_journal_enumerate_data(sd_journal* journal, out void* data, out nuint length);
+    public static partial JournalResult<int> sd_journal_enumerate_data(sd_journal* journal, out byte* data, out nuint length);
 
     // int sd_journal_get_data_threshold(sd_journal *j, size_t *sz);
     [LibraryImport(LibraryName, EntryPoint = "sd_journal_get_data_threshold")]
