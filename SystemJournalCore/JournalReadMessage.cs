@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SystemJournalCore;
 
@@ -87,8 +86,8 @@ public readonly ref struct JournalReadMessage(ReadOnlySpan<byte> bytes)
         public ReadOnlySpan<byte> FieldBytes => _field;
         public ReadOnlySpan<byte> ValueBytes => _value;
 
-        public string Field => Encoding.ASCII.GetString(_field);
-        public string Value => Encoding.UTF8.GetString(_value);
+        public string Field => FieldCache.Get(_field);
+        public string Value => ValueEncoder.Get(_value);
 
         public void Deconstruct(out string field, out string value)
         {

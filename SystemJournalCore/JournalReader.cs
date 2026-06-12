@@ -65,12 +65,12 @@ public sealed unsafe class JournalReader : NativeObject
     }
 
     [SkipLocalsInit]
-    public void AddMatch(string field, string value) 
+    public void AddMatch(ReadOnlySpan<byte> field, string value)
     {
-        Span<byte> fieldBytes = stackalloc byte[field.Length];
-        Encoding.ASCII.GetBytes(field, fieldBytes);
-        Span<byte> valueBytes = stackalloc byte[Encoding.UTF8.GetMaxByteCount(value.Length)];
-        valueBytes = valueBytes[..Encoding.UTF8.GetBytes(value, valueBytes)];
-        AddMatch(fieldBytes, valueBytes);
+        Span<byte> valueBytes = stackalloc byte[ValueEncoder.EstimateByteCount(value)];
+        valueBytes = valueBytes[..ValueEncoder.GetBytes(value, valueBytes)];
+        AddMatch(field, valueBytes);
     }
+
+    public void AddMatch(string field, string value) => AddMatch(FieldCache.Get(field), value);
 }

@@ -48,18 +48,12 @@ public ref struct JournalWriteMessage(Span<byte> scratchBuffer) : IDisposable
     [SkipLocalsInit]
     public void Add(scoped ReadOnlySpan<byte> field, string value)
     {
-        Span<byte> valueBytes = stackalloc byte[Encoding.UTF8.GetMaxByteCount(value.Length)];
-        valueBytes = valueBytes[..Encoding.UTF8.GetBytes(value, valueBytes)];
+        Span<byte> valueBytes = stackalloc byte[ValueEncoder.EstimateByteCount(value)];
+        valueBytes = valueBytes[..ValueEncoder.GetBytes(value, valueBytes)];
         Add(field, valueBytes);
     }
 
-    [SkipLocalsInit]
-    public void Add(string field, string value)
-    {
-        Span<byte> fieldBytes = stackalloc byte[field.Length];
-        Encoding.ASCII.GetBytes(field, fieldBytes);
-        Add(fieldBytes, value);
-    }
+    public void Add(string field, string value) => Add(FieldCache.Get(field), value);
 
     public void AddAll(IEnumerable<KeyValuePair<string, string>> fields)
     {
