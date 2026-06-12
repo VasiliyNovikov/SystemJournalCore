@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 using LinuxCore;
 
@@ -20,6 +19,16 @@ public sealed unsafe class JournalReader : NativeObject
             sd_journal_get_realtime_usec(_journal, out var usec).ThrowIfError();
             return usec;
         }
+    }
+
+    public ulong? DataThreshold
+    {
+        get
+        {
+            sd_journal_get_data_threshold(_journal, out var sz).ThrowIfError();
+            return sz == 0 ? null : sz;
+        }
+        set => sd_journal_set_data_threshold(_journal, (nuint)(value ?? 0)).ThrowIfError();
     }
 
     public DateTime CurrentTimestamp
