@@ -4,8 +4,8 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="LinuxCore" Version="0.3.0" />
-    <PackageVersion Include="MSTest" Version="4.1.0" />
-    <PackageVersion Include="NuGet.Versioning" Version="7.0.1" />
+    <PackageVersion Include="LinuxCore" Version="0.3.5" />
+    <PackageVersion Include="MSTest" Version="4.2.3" />
+    <PackageVersion Include="NuGet.Versioning" Version="7.6.0" />
   </ItemGroup>
 </Project>
