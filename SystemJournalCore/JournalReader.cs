@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 
 using LinuxCore;
@@ -9,6 +10,8 @@ namespace SystemJournalCore;
 
 public sealed unsafe class JournalReader : NativeObject
 {
+    private const int StackallocByteThreshold = 512;
+
     private readonly sd_journal* _journal;
 
     public ulong CurrentTimestampMicroseconds
@@ -69,17 +72,45 @@ public sealed unsafe class JournalReader : NativeObject
     [SkipLocalsInit]
     public void AddMatch(ReadOnlySpan<byte> field, ReadOnlySpan<byte> value)
     {
-        Span<byte> data = [..field, (byte)'=', ..value];
-        fixed (byte* dataPtr = data)
-            sd_journal_add_match(_journal, dataPtr, (nuint)data.Length).ThrowIfError();
+        var length = field.Length + 1 + value.Length;
+        byte[]? rentedBuffer = null;
+        var data = length <= StackallocByteThreshold
+            ? stackalloc byte[length]
+            : (rentedBuffer = ArrayPool<byte>.Shared.Rent(length)).AsSpan(0, length);
+        try
+        {
+            field.CopyTo(data);
+            data[field.Length] = (byte)'=';
+            value.CopyTo(data[(field.Length + 1)..]);
+
+            fixed (byte* dataPtr = data)
+                sd_journal_add_match(_journal, dataPtr, (nuint)data.Length).ThrowIfError();
+        }
+        finally
+        {
+            if (rentedBuffer is not null)
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
+        }
     }
 
     [SkipLocalsInit]
     public void AddMatch(ReadOnlySpan<byte> field, string value)
     {
-        Span<byte> valueBytes = stackalloc byte[ValueEncoder.EstimateByteCount(value)];
-        valueBytes = valueBytes[..ValueEncoder.GetBytes(value, valueBytes)];
-        AddMatch(field, valueBytes);
+        var valueLength = ValueEncoder.GetByteCount(value);
+        byte[]? rentedBuffer = null;
+        var data = valueLength <= StackallocByteThreshold
+            ? stackalloc byte[valueLength]
+            : (rentedBuffer = ArrayPool<byte>.Shared.Rent(valueLength)).AsSpan(0, valueLength);
+        try
+        {
+            ValueEncoder.GetBytes(value, data);
+            AddMatch(field, data);
+        }
+        finally
+        {
+            if (rentedBuffer is not null)
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
+        }
     }
 
     public void AddMatch(string field, string value) => AddMatch(FieldCache.Get(field), value);

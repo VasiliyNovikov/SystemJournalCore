@@ -72,7 +72,8 @@ public class JournalReaderTests
     {
         var identifier = $"sjc-reader-filter-test-{Guid.NewGuid():N}";
         const string ignoredGroup = "ignored";
-        const string expectedGroup = "expected";
+        var expectedGroup = new string('g', 300);
+        var expectedKind = new string('k', 300);
         const string expectedMessage = "expected JournalReader filter message";
         var since = DateTime.UtcNow;
 
@@ -80,20 +81,23 @@ public class JournalReaderTests
         {
             ["MESSAGE"] = "ignored JournalReader filter message",
             ["SYSLOG_IDENTIFIER"] = identifier,
-            ["TEST_READER_GROUP"] = ignoredGroup
+            ["TEST_READER_GROUP"] = ignoredGroup,
+            ["TEST_READER_KIND"] = ignoredGroup
         });
         JournalControl.Write(new Dictionary<string, string>
         {
             ["MESSAGE"] = expectedMessage,
             ["SYSLOG_IDENTIFIER"] = identifier,
-            ["TEST_READER_GROUP"] = expectedGroup
+            ["TEST_READER_GROUP"] = expectedGroup,
+            ["TEST_READER_KIND"] = expectedKind
         });
 
         Thread.Sleep(JournalFlushDelay);
 
         using var reader = new JournalReader();
         reader.AddMatch("SYSLOG_IDENTIFIER", identifier);
-        reader.AddMatch("TEST_READER_GROUP"u8, "expected"u8);
+        reader.AddMatch("TEST_READER_GROUP", expectedGroup);
+        reader.AddMatch("TEST_READER_KIND"u8, ValueEncoder.GetBytes(expectedKind));
         reader.Seek(since);
 
         Assert.IsTrue(reader.Read(out var entry), "The expected journal entry was not readable.");
@@ -101,6 +105,8 @@ public class JournalReaderTests
         Assert.AreEqual(identifier, currentIdentifier);
         Assert.IsTrue(entry.TryGetValue("TEST_READER_GROUP"u8, out var group));
         Assert.AreEqual(expectedGroup, group, "JournalReader returned an entry from the wrong TEST_READER_GROUP.");
+        Assert.IsTrue(entry.TryGetValue("TEST_READER_KIND"u8, out var kind));
+        Assert.AreEqual(expectedKind, kind, "JournalReader returned an entry from the wrong TEST_READER_KIND.");
         Assert.AreEqual(expectedMessage, entry.GetValue("MESSAGE"));
     }
 

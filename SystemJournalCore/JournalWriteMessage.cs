@@ -25,7 +25,19 @@ public ref struct JournalWriteMessage(Span<byte> scratchBuffer) : IDisposable
         _rentedBuffer = null;
     }
 
-    public void Add(scoped ReadOnlySpan<byte> field, scoped ReadOnlySpan<byte> value)
+    public void Add(scoped ReadOnlySpan<byte> field, scoped ReadOnlySpan<byte> value) => value.CopyTo(PrepareAdd(field, value.Length, value.Contains((byte)'\n')));
+
+    public void Add(scoped ReadOnlySpan<byte> field, string value) => ValueEncoder.GetBytes(value, PrepareAdd(field, ValueEncoder.GetByteCount(value), value.Contains('\n')));
+
+    public void Add(string field, string value) => Add(FieldCache.Get(field), value);
+
+    public void AddAll(IEnumerable<KeyValuePair<string, string>> fields)
+    {
+        foreach (var (field, value) in fields)
+            Add(field, value);
+    }
+
+    private Span<byte> PrepareAdd(scoped ReadOnlySpan<byte> field, int valueLength, bool valueHasNewLine)
     {
         if (field.Length == 0)
             throw new ArgumentException("Field name cannot be empty", nameof(field));
@@ -34,31 +46,16 @@ public ref struct JournalWriteMessage(Span<byte> scratchBuffer) : IDisposable
         if (field[1..].IndexOfAnyExcept(FieldNameValidChars) != -1)
             throw new ArgumentException("Field name contains invalid characters", nameof(field));
         Write(field);
-        if (value.Contains((byte)'\n'))
+        if (valueHasNewLine)
         {
             Write('\n');
-            MemoryMarshal.Write(PrepareWrite(sizeof(ulong)), (ulong)value.Length);
+            MemoryMarshal.Write(PrepareWrite(sizeof(ulong)), (ulong)valueLength);
         }
         else
             Write('=');
-        Write(value);
+        var valueBuffer = PrepareWrite(valueLength);
         Write('\n');
-    }
-
-    [SkipLocalsInit]
-    public void Add(scoped ReadOnlySpan<byte> field, string value)
-    {
-        Span<byte> valueBytes = stackalloc byte[ValueEncoder.EstimateByteCount(value)];
-        valueBytes = valueBytes[..ValueEncoder.GetBytes(value, valueBytes)];
-        Add(field, valueBytes);
-    }
-
-    public void Add(string field, string value) => Add(FieldCache.Get(field), value);
-
-    public void AddAll(IEnumerable<KeyValuePair<string, string>> fields)
-    {
-        foreach (var (field, value) in fields)
-            Add(field, value);
+        return valueBuffer;
     }
 
     private Span<byte> PrepareWrite(int length)
@@ -82,19 +79,4 @@ public ref struct JournalWriteMessage(Span<byte> scratchBuffer) : IDisposable
     private void Write(scoped ReadOnlySpan<byte> value) => value.CopyTo(PrepareWrite(value.Length));
     private void Write(byte value) => Write([value]);
     private void Write(char value) => Write((byte)value);
-
-    private sealed class RentedBuffer(int minimumLength)
-    {
-        public byte[] Buffer { get; private set; } = ArrayPool<byte>.Shared.Rent(minimumLength);
-
-        public void Return()
-        {
-            var buffer = Buffer;
-            if (buffer.Length == 0)
-                return;
-
-            Buffer = [];
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
-    }
 }
