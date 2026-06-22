@@ -7,7 +7,7 @@ namespace SystemJournalCore.Interop;
 
 internal static unsafe partial class LibSystemD
 {
-    private const string LibraryName = "libsystemd.so";
+    private const string LibraryName = "libsystemd.so.0";
 
     [Flags]
     public enum sd_journal_flags 

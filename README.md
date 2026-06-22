@@ -2,6 +2,8 @@
 
 .NET wrapper for the Linux system journal.
 
+Runtime requires `libsystemd.so.0` (`libsystemd0` on Ubuntu/Debian).
+
 This repository is currently a scaffold only. The implementation is still to be designed.
 
 Current design notes:

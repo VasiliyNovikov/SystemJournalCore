@@ -32,6 +32,7 @@ dotnet test
   - `ubuntu-22.04`
   - `ubuntu-24.04-arm`
   - `ubuntu-22.04-arm`
+- CI installs `libsystemd0` because runtime interop targets `libsystemd.so.0`.
 - `publish` exists but is intentionally disabled until package publishing is enabled.
 
 ## Current Conventions
@@ -51,6 +52,7 @@ dotnet test
 - For journald transport and read/query design notes, see `docs/journald-native-protocol.md`.
 - Update `README.md` and this file when the architecture becomes concrete so the guidance stays accurate.
 - If you add native interop later, prefer `[LibraryImport]` over `[DllImport]`.
+- Runtime interop should target the stable `libsystemd.so.0` SONAME, not the development-only `libsystemd.so` symlink.
 
 ### Style
 - Use file-scoped namespace declarations.
