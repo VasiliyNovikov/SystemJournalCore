@@ -16,22 +16,46 @@ public readonly unsafe struct JournalEntryReader
     public ReadOnlySpan<byte> this[ReadOnlySpan<byte> field]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => TryGetValueBytes(field, out var valueBytes) ? valueBytes : throw new KeyNotFoundException($"The field '{FieldCache.Get(field)}' was not found in the journal entry");
+        get => GetValueBytesImpl(FieldCache.GetNullTerminated(field));
     }
 
     public ReadOnlySpan<byte> this[string field]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => this[FieldCache.Get(field)];
+        get => GetValueBytesImpl(FieldCache.GetNullTerminated(field));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal JournalEntryReader(sd_journal* journal) => _journal = journal;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetValueBytes(ReadOnlySpan<byte> field, out ReadOnlySpan<byte> valueBytes)
+    public bool TryGetValueBytes(ReadOnlySpan<byte> field, out ReadOnlySpan<byte> valueBytes) => TryGetValueBytesImpl(FieldCache.GetNullTerminated(field), out valueBytes);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetValue(ReadOnlySpan<byte> field, [MaybeNullWhen(false)]out string value)
     {
-        var result = sd_journal_get_data(_journal, field, out var dataPtr, out var dataLength);
+        if (TryGetValueBytesImpl(FieldCache.GetNullTerminated(field), out var valueBytes))
+        {
+            value = ValueEncoder.Get(valueBytes);
+            return true;
+        }
+        value = null;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string GetValue(ReadOnlySpan<byte> field) => ValueEncoder.Get(GetValueBytesImpl(FieldCache.GetNullTerminated(field)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string GetValue(string field) => ValueEncoder.Get(GetValueBytesImpl(FieldCache.GetNullTerminated(field)));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Enumerator GetEnumerator() => new(_journal);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool TryGetValueBytesImpl(ReadOnlySpan<byte> nullTerminatedField, out ReadOnlySpan<byte> valueBytes)
+    {
+        var result = sd_journal_get_data(_journal, nullTerminatedField, out var dataPtr, out var dataLength);
         switch (result.ErrorNumber)
         {
             case LinuxErrorNumber.OK:
@@ -46,24 +70,10 @@ public readonly unsafe struct JournalEntryReader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetValue(ReadOnlySpan<byte> field, [MaybeNullWhen(false)]out string value)
+    private ReadOnlySpan<byte> GetValueBytesImpl(ReadOnlySpan<byte> nullTerminatedField)
     {
-        if (TryGetValueBytes(field, out var valueBytes))
-        {
-            value = ValueEncoder.Get(valueBytes);
-            return true;
-        }
-        value = null;
-        return false;
+        return TryGetValueBytesImpl(nullTerminatedField, out var valueBytes) ? valueBytes : throw new KeyNotFoundException($"The field '{FieldCache.Get(nullTerminatedField[..^1])}' was not found in the journal entry");
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetValue(ReadOnlySpan<byte> field) => ValueEncoder.Get(this[field]);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetValue(string field) => GetValue(FieldCache.Get(field));
-
-    public Enumerator GetEnumerator() => new(_journal);
 
     public ref struct Enumerator
     {

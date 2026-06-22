@@ -66,6 +66,7 @@ public sealed unsafe class JournalReader : NativeObject
     public void SeekTail() => sd_journal_seek_tail(_journal).ThrowIfError();
     public void Seek(DateTime timestamp) => sd_journal_seek_realtime_usec(_journal, (ulong)(timestamp - DateTime.UnixEpoch).TotalMicroseconds).ThrowIfError();
 
+    [SkipLocalsInit]
     public void AddMatch(ReadOnlySpan<byte> field, ReadOnlySpan<byte> value)
     {
         Span<byte> data = [..field, (byte)'=', ..value];
