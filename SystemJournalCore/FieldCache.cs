@@ -29,13 +29,13 @@ internal static class FieldCache
     public static ReadOnlySpan<byte> GetNullTerminated(ReadOnlySpan<byte> field) => GetEntry(field).NullTerminatedBytes;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static CacheEntry GetEntry(string field) => CollectionsMarshal.GetValueRefOrAddDefault(_cache ??= new(AsciiStringComparer.Instance), field, out _) ?? new(field);
+    private static CacheEntry GetEntry(string field) => CollectionsMarshal.GetValueRefOrAddDefault(_cache ??= new(AsciiStringComparer.Instance), field, out _) ??= new(field);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CacheEntry GetEntry(ReadOnlySpan<byte> field)
     {
         var reverseCache = _reverseCache ??= (_cache ??= new(AsciiStringComparer.Instance)).GetAlternateLookup<ReadOnlySpan<byte>>();
-        return CollectionsMarshal.GetValueRefOrAddDefault(reverseCache, field, out _) ?? new(field);
+        return CollectionsMarshal.GetValueRefOrAddDefault(reverseCache, field, out _) ??= new(field);
     }
 
     private class AsciiStringComparer : IEqualityComparer<string>, IAlternateEqualityComparer<ReadOnlySpan<byte>, string>
