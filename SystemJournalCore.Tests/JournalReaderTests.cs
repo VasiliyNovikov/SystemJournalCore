@@ -17,7 +17,7 @@ public class JournalReaderTests
         var identifier = $"sjc-reader-test-{Guid.NewGuid():N}";
         const string message = "hello from JournalReader test";
         const string customValue = "reader-value";
-        var since = DateTime.UtcNow;
+        var since = DateTimeOffset.UtcNow;
 
         JournalControl.Write(new Dictionary<string, string>
         {
@@ -75,7 +75,7 @@ public class JournalReaderTests
         var expectedGroup = new string('g', 300);
         var expectedKind = new string('k', 300);
         const string expectedMessage = "expected JournalReader filter message";
-        var since = DateTime.UtcNow;
+        var since = DateTimeOffset.UtcNow;
 
         JournalControl.Write(new Dictionary<string, string>
         {

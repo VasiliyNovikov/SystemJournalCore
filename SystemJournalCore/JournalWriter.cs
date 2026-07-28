@@ -26,7 +26,11 @@ public sealed class JournalWriter : IDisposable
         catch (LinuxException e) when (e.ErrorNumber is LinuxErrorNumber.TryAgain or LinuxErrorNumber.MessageTooLong or LinuxErrorNumber.NoBufferSpaceAvailable)
         {
             using var mem = new LinuxMemoryFile("journal", LinuxMemoryFileFlags.AllowSealing);
-            mem.Write(message.Bytes);
+            var bytes = message.Bytes;
+            do
+            {
+                bytes = bytes[mem.Write(bytes)..];
+            } while (!bytes.IsEmpty);
             mem.AddSeals(LinuxMemoryFileSeals.Shrink | LinuxMemoryFileSeals.Grow | LinuxMemoryFileSeals.Write | LinuxMemoryFileSeals.Seal);
             _socket.SendFileDescriptors([], [mem.Descriptor]);
         }
