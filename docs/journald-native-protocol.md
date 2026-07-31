@@ -15,7 +15,7 @@ This is the transport used by systemd's native journal client APIs behind `sd_jo
 Each journal entry is serialized as a sequence of environment-like fields.
 
 - Field names must be non-empty ASCII and must not contain control characters, `=`, or newline characters.
-- Values may contain arbitrary bytes, including `NUL`.
+- Values may contain arbitrary bytes, including `NULL`.
 - Fields whose names start with `_` are trusted fields added by journald; clients should not send them.
 
 There are two wire encodings for a field:
