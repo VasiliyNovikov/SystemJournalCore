@@ -13,12 +13,16 @@ public sealed unsafe class JournalReader : NativeObject
     private const int StackallocByteThreshold = 512;
 
     private readonly sd_journal* _journal;
+    private ulong _entryGeneration;
+    private bool _disposed;
 
     public ulong CurrentTimestampMicroseconds
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
+            ThrowIfDisposed();
+            using var keepAlive = KeepAlive();
             sd_journal_get_realtime_usec(_journal, out var usec).ThrowIfError();
             return usec;
         }
@@ -28,10 +32,17 @@ public sealed unsafe class JournalReader : NativeObject
     {
         get
         {
+            ThrowIfDisposed();
+            using var keepAlive = KeepAlive();
             sd_journal_get_data_threshold(_journal, out var sz).ThrowIfError();
             return sz == 0 ? null : sz;
         }
-        set => sd_journal_set_data_threshold(_journal, (nuint)(value ?? 0)).ThrowIfError();
+        set
+        {
+            ThrowIfDisposed();
+            using var keepAlive = KeepAlive();
+            sd_journal_set_data_threshold(_journal, (nuint)(value ?? 0)).ThrowIfError();
+        }
     }
 
     public DateTime CurrentTimestamp
@@ -61,13 +72,31 @@ public sealed unsafe class JournalReader : NativeObject
 
     protected override void ReleaseUnmanagedResources()
     {
+        _disposed = true;
         if (_journal is not null)
             sd_journal_close(_journal);
     }
 
-    public void SeekHead() => sd_journal_seek_head(_journal).ThrowIfError();
-    public void SeekTail() => sd_journal_seek_tail(_journal).ThrowIfError();
-    public void Seek(DateTimeOffset timestamp) => sd_journal_seek_realtime_usec(_journal, (ulong)(timestamp - DateTimeOffset.UnixEpoch).TotalMicroseconds).ThrowIfError();
+    public void SeekHead()
+    {
+        InvalidateCurrentEntry();
+        using var keepAlive = KeepAlive();
+        sd_journal_seek_head(_journal).ThrowIfError();
+    }
+
+    public void SeekTail()
+    {
+        InvalidateCurrentEntry();
+        using var keepAlive = KeepAlive();
+        sd_journal_seek_tail(_journal).ThrowIfError();
+    }
+
+    public void Seek(DateTimeOffset timestamp)
+    {
+        InvalidateCurrentEntry();
+        using var keepAlive = KeepAlive();
+        sd_journal_seek_realtime_usec(_journal, (ulong)(timestamp - DateTimeOffset.UnixEpoch).TotalMicroseconds).ThrowIfError();
+    }
 
     [SkipLocalsInit]
     public void AddMatch(ReadOnlySpan<byte> field, ReadOnlySpan<byte> value)
@@ -83,6 +112,8 @@ public sealed unsafe class JournalReader : NativeObject
             data[field.Length] = (byte)'=';
             value.CopyTo(data[(field.Length + 1)..]);
 
+            InvalidateCurrentEntry();
+            using var keepAlive = KeepAlive();
             fixed (byte* dataPtr = data)
                 sd_journal_add_match(_journal, dataPtr, (nuint)data.Length).ThrowIfError();
         }
@@ -118,12 +149,39 @@ public sealed unsafe class JournalReader : NativeObject
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Read(out JournalEntryReader entry)
     {
-        if (sd_journal_next(_journal).ThrowIfError() == 0)
+        InvalidateCurrentEntry();
+        int result;
+        {
+            using var keepAlive = KeepAlive();
+            result = sd_journal_next(_journal).ThrowIfError();
+        }
+        if (result == 0)
         {
             entry = default;
             return false;
         }
-        entry = new JournalEntryReader(_journal);
+        entry = new JournalEntryReader(this, _entryGeneration, _journal);
         return true;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void ValidateEntry(ulong generation)
+    {
+        ThrowIfDisposed();
+        if (generation != _entryGeneration)
+            throw new InvalidOperationException("The journal entry is no longer current");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void InvalidateCurrentEntry()
+    {
+        ThrowIfDisposed();
+        ++_entryGeneration;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal KeepAliveScope KeepAlive() => new(this);
 }
